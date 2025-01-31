@@ -14,7 +14,6 @@ if ! command_exists docker; then
     curl -fsSL https://get.docker.com | sh
     sudo usermod -aG docker $USER
     echo "Docker installed. Please log out and log back in for changes to take effect."
-    exit 1
 fi
 
 # Install Docker Compose if not found
@@ -22,13 +21,15 @@ if ! command_exists docker-compose; then
     echo "Docker Compose not found. Installing..."
     sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     sudo chmod +x /usr/local/bin/docker-compose
+    sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
     echo "Docker Compose installed."
 fi
 
 # Clone or create project folder
 if [ ! -d "rag-chatbot" ]; then
-    echo "Creating RAG chatbot project..."
     mkdir rag-chatbot
+else
+    rm -rf rag-chatbot/*
 fi
 
 cd rag-chatbot
