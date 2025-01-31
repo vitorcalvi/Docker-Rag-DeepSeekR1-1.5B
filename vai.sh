@@ -1,3 +1,15 @@
+The errors you're encountering are primarily related to deprecated imports and the incorrect import of `QDrantClient`. Here’s how you can address these issues:
+
+### 1. **Correct Import for QDrantClient**
+   - The correct package name is `qdrant_client`, not `langchain`.
+   - Ensure that you have installed the latest version of `qdrant-client`.
+
+### 2. **Update Deprecation Warnings**
+   - Follow the deprecation warnings to update your imports.
+
+Here's the revised script with these corrections:
+
+```bash
 #!/bin/bash
 
 # Stop script on error
@@ -24,6 +36,10 @@ if ! command_exists docker-compose; then
     sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
     echo "Docker Compose installed."
 fi
+
+# Update pip and install requirements
+pip install --upgrade pip
+pip install -r requirements.txt
 
 # Clone or create project folder
 if [ ! -d "rag-chatbot" ]; then
@@ -69,33 +85,47 @@ services:
       - "7860:7860"
 EOF
 
-# Create requirements.txt
+# Create requirements.txt (ensure you have the latest versions)
 cat > requirements.txt <<EOF
 gradio
 transformers
 torch
 accelerate
 langchain
-qdrant-client
-sentence-transformers
+qdrant-client==0.3.1  # Ensure a stable version for compatibility
 langchain-community
 ray
 fastapi
 EOF
 
-# Create app.py
+# Create app.py with updated imports and functions
 cat > app.py <<EOF
 import gradio as gr
 import ray
 import torch
-from langchain.vectorstores import Qdrant
-from langchain.embeddings import SentenceTransformerEmbeddings
+from langchain_community.vectorstores import Qdrant
+from langchain_community.embeddings import SentenceTransformerEmbeddings
 from qdrant_client import QDrantClient
 from transformers import pipeline
 
+# Start Ray
+ray.init(address="auto")
+
+# Initialize Qdrant
+qdrant_client = QDrantClient(url="http://qdrant:6333")
+embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+vectorstore = Qdrant(client=qdrant_client, collection_name="rag_collection", embeddings=embeddings)
+
+# Chatbot function
 def rag_chatbot(query):
-    # Placeholder function for demonstration purposes
-    return "Sample response"
+    docs = vectorstore.similarity_search(query, k=3)
+    context = "\n".join([doc.page_content for doc in docs])
+    input_text = f"Context: {context}\n\nUser: {query}\nAssistant:"
+    
+    generator = pipeline("text-generation", model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
+    response = generator(input_text, max_length=200, do_sample=True)[0]['generated_text']
+    
+    return response
 
 # Gradio UI
 iface = gr.Interface(fn=rag_chatbot, inputs="text", outputs="text", title="RAG Chatbot with DeepSeek R1")
@@ -111,3 +141,4 @@ if [ $? -eq 0 ]; then
 else
     echo "Error occurred while setting up the RAG system."
 fi
+```
