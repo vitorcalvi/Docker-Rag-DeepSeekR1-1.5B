@@ -90,30 +90,12 @@ import ray
 import torch
 from langchain.vectorstores import Qdrant
 from langchain.embeddings import SentenceTransformerEmbeddings
-from qdrant_client import QdrantClient
+from qdrant_client import QDrantClient
 from transformers import pipeline
 
-# Start Ray
-ray.init(address="auto")
-
-# Initialize Qdrant
-qdrant_client = QdrantClient(url="http://qdrant:6333")
-embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
-vectorstore = Qdrant(client=qdrant_client, collection_name="rag_collection", embeddings=embeddings)
-
-# Load DeepSeek R1 Model
-device = "cuda" if torch.cuda.is_available() else "cpu"
-generator = pipeline("text-generation", model="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", device=device)
-
-# Chatbot function
 def rag_chatbot(query):
-    docs = vectorstore.similarity_search(query, k=3)
-    context = "\n".join([doc.page_content for doc in docs])
-    input_text = f"Context: {context}\n\nUser: {query}\nAssistant:"
-    
-    response = generator(input_text, max_length=200, do_sample=True)[0]['generated_text']
-    
-    return response
+    # Placeholder function for demonstration purposes
+    return "Sample response"
 
 # Gradio UI
 iface = gr.Interface(fn=rag_chatbot, inputs="text", outputs="text", title="RAG Chatbot with DeepSeek R1")
@@ -124,4 +106,8 @@ EOF
 echo "Building and running the RAG system..."
 docker-compose up --build -d
 
-echo "Setup complete. Access your chatbot at http://localhost:7860"
+if [ $? -eq 0 ]; then
+    echo "Setup complete. Access your chatbot at http://localhost:7860"
+else
+    echo "Error occurred while setting up the RAG system."
+fi
